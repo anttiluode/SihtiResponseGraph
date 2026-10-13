@@ -59,6 +59,16 @@ class ResponseGraph(nn.Module):
             raise ValueError("image must be [B, 3, 32, 32]")
         if not torch.is_floating_point(image):
             raise ValueError("image must be floating point in [0, 1]")
+        if previous is not None:
+            self._check_memory(previous, image.shape[0])
+        if visibility is not None:
+            if visibility.shape != (image.shape[0], 1, IMAGE_SIZE, IMAGE_SIZE):
+                raise ValueError("visibility must be [B, 1, 32, 32]")
+            visibility = visibility.to(dtype=image.dtype).clamp(0, 1)
+            if previous is not None and not bool(visibility.any()):
+                return previous
+            # Hidden pixel values must never enter features for visible edges.
+            image = image * visibility
         features = self.encoder(image)
         horizontal = self._edge_gate(features[..., :-1], features[..., 1:])
         vertical = self._edge_gate(features[..., :-1, :], features[..., 1:, :])
@@ -68,12 +78,9 @@ class ResponseGraph(nn.Module):
         if previous is None:
             previous = GraphMemory(torch.full_like(horizontal, 0.5),
                                    torch.full_like(vertical, 0.5))
-        self._check_memory(previous, image.shape[0])
         if visibility is None:
             visibility = torch.ones_like(image[:, :1])
-        if visibility.shape != (image.shape[0], 1, IMAGE_SIZE, IMAGE_SIZE):
-            raise ValueError("visibility must be [B, 1, 32, 32]")
-        observed = F.adaptive_avg_pool2d(visibility.float().clamp(0, 1), (GRID, GRID))
+        observed = F.adaptive_avg_pool2d(visibility, (GRID, GRID))
         hmask = torch.minimum(observed[..., :-1], observed[..., 1:])
         vmask = torch.minimum(observed[..., :-1, :], observed[..., 1:, :])
         old_h, old_v = self._gates(previous)

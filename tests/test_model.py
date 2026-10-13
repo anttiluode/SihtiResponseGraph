@@ -36,6 +36,25 @@ class ResponseGraphTests(unittest.TestCase):
         torch.testing.assert_close(changed.horizontal, memory.horizontal, rtol=0, atol=0)
         torch.testing.assert_close(changed.vertical, memory.vertical, rtol=0, atol=0)
 
+    def test_invisible_pixels_cannot_change_masked_write(self):
+        visibility = torch.zeros(2, 1, 32, 32)
+        visibility[..., :16] = 1
+        altered = self.a.clone()
+        altered[..., 16:] = 1 - altered[..., 16:]
+        a = self.model.write(self.a, visibility=visibility)
+        b = self.model.write(altered, visibility=visibility)
+        torch.testing.assert_close(a.horizontal, b.horizontal, rtol=0, atol=0)
+        torch.testing.assert_close(a.vertical, b.vertical, rtol=0, atol=0)
+
+    def test_zero_visibility_preserves_quantized_memory_and_storage(self):
+        memory = quantize_memory(self.model.write(self.a))
+        changed = self.model.write(torch.zeros_like(self.a), memory, torch.zeros(2, 1, 32, 32))
+        self.assertEqual(changed.horizontal.dtype, torch.uint8)
+        self.assertEqual(changed.vertical.dtype, torch.uint8)
+        self.assertEqual(state_bytes(changed), state_bytes(memory))
+        torch.testing.assert_close(changed.horizontal, memory.horizontal, rtol=0, atol=0)
+        torch.testing.assert_close(changed.vertical, memory.vertical, rtol=0, atol=0)
+
     def test_graph_controls_same_ping_response(self):
         memory = self.model.write(self.a)
         query = torch.tensor([0, 0])
