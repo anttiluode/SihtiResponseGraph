@@ -1,0 +1,13 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sihti-response-graph"
+version = "0.1.0"
+description = "Experience-written graph memory for a small image query experiment"
+requires-python = ">=3.11"
+dependencies = ["torch>=2.3", "numpy>=1.26", "Pillow>=10"]
+
+[tool.setuptools.packages.find]
+include = ["response_graph*"]
