@@ -81,8 +81,9 @@ class ResponseGraph(nn.Module):
                            old_v * (1 - vmask) + vertical * vmask)
 
     def _edge_gate(self, a: Tensor, b: Tensor) -> Tensor:
-        return torch.sigmoid(self.edge_writer(torch.cat(((a + b) * 0.5,
-                                                         (a - b).abs()), dim=1)))
+        # A positive floor prevents byte rounding from deleting weak edges.
+        logits = self.edge_writer(torch.cat(((a + b) * 0.5, (a - b).abs()), dim=1))
+        return 0.05 + 0.95 * torch.sigmoid(logits)
 
     @staticmethod
     def _check_memory(memory: GraphMemory, batch: int) -> None:

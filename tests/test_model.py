@@ -55,6 +55,17 @@ class ResponseGraphTests(unittest.TestCase):
         self.assertEqual(state_bytes(memory), 2 * 896)
         self.assertTrue(torch.isfinite(self.model.read(memory, torch.tensor([0, 1]))).all().item())
 
+    def test_weak_conductances_survive_byte_round_trip(self):
+        with torch.no_grad():
+            self.model.edge_writer.weight.zero_()
+            self.model.edge_writer.bias.fill_(-20)
+        memory = self.model.write(self.a)
+        compact = quantize_memory(memory)
+        self.assertGreater(compact.horizontal.min().item(), 0)
+        query = torch.tensor([0, 2])
+        self.assertLess((self.model.read(memory, query) - self.model.read(compact, query))
+                        .square().mean().item(), 1e-4)
+
     def test_bad_shapes_and_queries_fail(self):
         with self.assertRaises(ValueError):
             self.model.write(torch.rand(1, 3, 31, 32))
