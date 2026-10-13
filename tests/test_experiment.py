@@ -56,6 +56,15 @@ class ExperimentTests(unittest.TestCase):
             with self.assertRaises(FileNotFoundError):
                 render_query(root / "missing.pt", root / "image.png", 0, root / "out.png")
 
+    def test_bundled_pilot_checkpoint_renders_sample(self):
+        results = Path(__file__).resolve().parents[1] / "results"
+        with TemporaryDirectory() as directory:
+            output = Path(directory) / "query.png"
+            render_query(results / "pilot_graph.pt", results / "pilot_input.png", 2, output)
+            with Image.open(output) as image:
+                self.assertEqual(image.size, (32, 32))
+                self.assertGreater(len(image.getcolors(32 * 32)), 1)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -40,6 +40,12 @@ After training, inspect `runs/first/metrics.json` and `runs/first/predictions.pn
 python predict.py runs/first/graph.pt picture.png runs/first/query.png --query 1
 ```
 
+The repository also includes the pilot's trained weights and one held-out source image, so an immediate example is:
+
+```bash
+python predict.py results/pilot_graph.pt results/pilot_input.png runs/pilot_query.png --query 2
+```
+
 `--query 0,1,2,3` denotes counterclockwise quarter-turns from the input. A real photo is outside the synthetic training distribution, so the resulting pixels are an exploratory response rather than reliable geometry. `predict.py` resizes the input to 32×32.
 
 ## Experimental contract
@@ -53,7 +59,7 @@ No gate asserts that the response graph beats the vector. Compare `graph.mse`, `
 
 ### First pilot (one seed)
 
-With seed 7, 1,200 steps, 1,024 training objects and 128 held-out objects, the quantized graph scored MSE **0.023825** (16.23 dB), the equal-byte vector **0.025985** (15.85 dB), and the fixed-graph control **0.033369** (14.77 dB). The graph did better on three turned views and worse on the unrotated view. The [exact metrics](results/pilot_1200.json) and [four-example contact sheet](results/pilot_1200.png) are preserved. Both methods make blurred predictions and lose the tiny identity mark. This one-seed pilot tests the mechanism; it does not establish a robust advantage or solve identity preservation. The positive conductance floor prevents quantization from erasing weak edges: on this pilot float and byte graph MSE differ by less than 0.000001.
+With seed 7, 1,200 steps, 1,024 training objects and 128 held-out objects, the quantized graph scored MSE **0.023825** (16.23 dB), the equal-byte vector **0.025985** (15.85 dB), and the fixed-graph control **0.033369** (14.77 dB). The graph did better on three turned views and worse on the unrotated view. The [exact metrics](results/pilot_1200.json), [four-example contact sheet](results/pilot_1200.png), [graph weights](results/pilot_graph.pt), [vector weights](results/pilot_vector.pt), and [sample source](results/pilot_input.png) are preserved. Both methods make blurred predictions and lose the tiny identity mark. This one-seed pilot tests the mechanism; it does not establish a robust advantage or solve identity preservation. The positive conductance floor prevents byte rounding from deleting weak edges.
 
 ## Next gate if the mechanism matters
 
