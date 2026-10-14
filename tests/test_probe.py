@@ -28,14 +28,21 @@ class MarkProbeTests(unittest.TestCase):
             mark_attributes(torch.zeros(1, 3, 32, 32))
 
     def test_erasing_mark_replaces_only_that_patch_with_body_color(self):
-        source = GlyphViews(17, 1)[0][0][None]
+        background = torch.tensor([12, 16, 24], dtype=torch.float32) / 255
+        body = torch.tensor([90, 160, 220], dtype=torch.float32) / 255
+        arm = torch.tensor([180, 100, 70], dtype=torch.float32) / 255
+        mark = torch.tensor([240, 220, 100], dtype=torch.float32) / 255
+        source = background[None, :, None, None].expand(1, 3, 32, 32).clone()
+        source[:, :, 5:20, 6:22] = body[:, None, None]
+        source[:, :, 15:18, 22:27] = arm[:, None, None]
+        mark_pixels = ((8, 10), (9, 9), (9, 10), (9, 11), (10, 10))
+        for y, x in mark_pixels:
+            source[0, :, y, x] = mark
+        expected = source.clone()
+        for y, x in mark_pixels:
+            expected[0, :, y, x] = body
         erased = erase_mark(source)
-        changed = (source != erased).any(dim=1)
-        self.assertGreater(changed.sum().item(), 0)
-        self.assertLessEqual(changed.sum().item(), 9)
-        self.assertTrue(torch.equal(source[~changed[:, None].expand_as(source)],
-                                    erased[~changed[:, None].expand_as(source)]))
-        self.assertEqual(len(torch.unique(erased[0].permute(1, 2, 0).reshape(-1, 3), dim=0)), 3)
+        torch.testing.assert_close(erased, expected, rtol=0, atol=0)
 
     def test_collected_graph_features_are_quantized_edges_only(self):
         torch.manual_seed(9)
